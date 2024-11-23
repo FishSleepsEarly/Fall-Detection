@@ -8,7 +8,7 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 from sam2.build_sam import build_sam2_video_predictor
 import time
-from frame_manager import get_video_properties, reconstruct_video, extract_mask_centers, draw_points_on_frames, extract_masks
+from frame_manager import get_video_properties, reconstruct_video, extract_mask_centers, draw_points_on_frames, extract_masks, display_image_and_capture_clicks, display_image_and_capture_clicks_video
 
 
 # select the device for computation
@@ -306,6 +306,42 @@ def process_video_811(video, points):
 
     predictor.reset_state(inference_state)
 
+def process_videos_in_folder(folder_path, num_clicks):
+    """
+    Loops through all videos in a given folder, captures click points from the first frame
+    of each video, and processes them with `process_video_811`.
 
+    Args:
+        folder_path (str): Path to the folder containing video files.
+        num_clicks (int): Number of clicks to capture from each video.
+
+    Returns:
+        None
+    """
+    # Get all video files in the folder
+    video_files = [f for f in os.listdir(folder_path) if f.endswith('.mp4')]
+
+    for video_file in video_files:
+        # Extract the video name (e.g., "1" from "1.mp4")
+        video_name = os.path.splitext(video_file)[0]
+
+        # Full path to the video
+        video_path = os.path.join(folder_path, video_file)
+
+        print(f"Processing video: {video_file}")
+
+        # Capture click points from the first frame of the video
+        points = display_image_and_capture_clicks_video(video_path, num_clicks)
+
+        # Process the video with the captured points
+        process_video_811(video_name, points)
+
+        print(f"Finished processing video: {video_file}\n")
+
+
+'''
 points = np.array([[465, 201], [424, 360]], dtype=np.float32)
 process_video_811("1", points)
+'''
+raw_videos = "../data/raw_videos"
+process_videos_in_folder(raw_videos, 2)

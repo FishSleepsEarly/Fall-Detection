@@ -66,6 +66,11 @@ def reconstruct_video(output_path, frames_dir, properties, frame_names, video_se
     video.release()
     print("Video Reconstruction Done.")
 
+
+
+
+
+# Extra functions for MM811
 def rename_and_convert_frames(input_folder_path, output_folder_path):
     """
     Renames and converts image frames in the given folder to sequentially numbered
@@ -98,21 +103,17 @@ def rename_and_convert_frames(input_folder_path, output_folder_path):
             rgb_img = img.convert('RGB')  # Convert to RGB for JPG format
             rgb_img.save(new_file_path, "JPEG")
 
-
-
-
-# Extra functions for MM811
-
-def display_image_and_capture_clicks(image_path):
+def display_image_and_capture_clicks(image_path, num_clicks):
     """
-    Displays a JPG image and allows the user to click on it. 
-    Prints the coordinates of each click.
+    Displays a JPG image and allows the user to click on it.
+    Captures a specified number of clicks and returns their coordinates.
 
     Args:
         image_path (str): Path to the JPG image to display.
+        num_clicks (int): The number of clicks to capture.
 
     Returns:
-        None
+        list: List of (x, y) coordinates of the captured clicks.
     """
     # Open the image
     img = Image.open(image_path)
@@ -120,7 +121,7 @@ def display_image_and_capture_clicks(image_path):
     # Create a figure and axis
     fig, ax = plt.subplots()
     ax.imshow(img)
-    ax.set_title("Click on the image to get coordinates. Close the window when done.")
+    ax.set_title(f"Click {num_clicks} times on the image. Close the window when done.")
 
     # List to store coordinates
     coords = []
@@ -131,6 +132,51 @@ def display_image_and_capture_clicks(image_path):
             x, y = int(event.xdata), int(event.ydata)
             coords.append((x, y))
             print(f"Clicked at: ({x}, {y})")
+            if len(coords) >= num_clicks:  # Stop after required number of clicks
+                plt.close(fig)
+    # Connect the event handler
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+    # Show the image
+    plt.show()
+    # Disconnect the event handler
+    fig.canvas.mpl_disconnect(cid)
+
+    return coords
+
+def display_image_and_capture_clicks_video(video_path, num_clicks):
+    """
+    Displays the first frame of a video and allows the user to click on it.
+    Captures a specified number of clicks and returns their coordinates.
+
+    Args:
+        video_path (str): Path to the video file.
+        num_clicks (int): The number of clicks to capture.
+
+    Returns:
+        list: List of (x, y) coordinates of the captured clicks.
+    """
+    # Extract the first frame from the video
+    first_frame = get_first_frame(video_path)
+    
+    # Convert the BGR frame to RGB for displaying
+    first_frame_rgb = cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB)
+    
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+    ax.imshow(first_frame_rgb)
+    ax.set_title(f"Click {num_clicks} times on the image. Close the window when done.")
+
+    # List to store coordinates
+    coords = []
+
+    # Event handler to capture clicks
+    def onclick(event):
+        if event.xdata is not None and event.ydata is not None:  # Check for valid click
+            x, y = int(event.xdata), int(event.ydata)
+            coords.append((x, y))
+            print(f"Clicked at: ({x}, {y})")
+            if len(coords) >= num_clicks:  # Stop after required number of clicks
+                plt.close(fig)
 
     # Connect the event handler
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -138,8 +184,10 @@ def display_image_and_capture_clicks(image_path):
     # Show the image
     plt.show()
     
-    # Disconnect after window closes
+    # Disconnect the event handler
     fig.canvas.mpl_disconnect(cid)
+
+    return coords
 
 def convert_jpgs_to_video(input_folder, output_video_path, fps=30):
     """
@@ -207,7 +255,7 @@ def extract_masks(outpath, video_segments, frame_names):
             binary_mask = (mask > 0).astype(np.uint8) * 255
 
             # Construct the output file path
-            output_file = os.path.join(outpath, f"{frame_name}_obj_{obj_id}.png")
+            output_file = os.path.join(outpath, frame_name)
 
             # Save the mask as a PNG image
             cv2.imwrite(output_file, binary_mask)
@@ -299,15 +347,26 @@ def draw_points_on_frames(input_txt_path, input_frames_path, output_frames_path,
 #---------------#
 # Testing Field #
 #---------------#
-
-# Jpg to video
 v1_raw_frams = "../data/raw_frames/1"
 v1_raw_video = "../data/raw_videos/1.mp4"
-#convert_jpgs_to_video(v1_raw_frams,v1_raw_video)
-
-# draw points on frames
 v1_points = "../data/points/1.txt"
 v1_point_frames = "../data/point_frames/1"
 v1_point_video = "../data/point_videos/1.mp4"
+example_image = v1_raw_frams+"/0000.jpg"
+
+# rename frames
+#rename_and_convert_frames(v1_raw_frams+"/1", v1_raw_frams)
+
+# Jpg to video
+
+#convert_jpgs_to_video(v1_raw_frams,v1_raw_video)
+
+# draw points on frames
+
 #draw_points_on_frames(v1_points, v1_raw_frams, v1_point_frames)
 #convert_jpgs_to_video(v1_point_frames,v1_point_video)
+
+
+#coords = display_image_and_capture_clicks_video(v1_raw_video, 2)
+#print(coords)
+

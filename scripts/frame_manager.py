@@ -66,7 +66,39 @@ def reconstruct_video(output_path, frames_dir, properties, frame_names, video_se
     video.release()
     print("Video Reconstruction Done.")
 
+def get_image_shape(image_path):
+    """
+    Get the shape (channels, height, width) of a JPG image.
 
+    Parameters:
+        image_path (str): Path to the JPG image file.
+
+    Returns:
+        tuple: A tuple (channels, height, width).
+    """
+    with Image.open(image_path) as img:
+        width, height = img.size
+        mode = img.mode
+        
+        # Determine the number of channels based on the mode
+        channels = {
+            "1": 1,      # 1-bit pixels, black and white, stored with one pixel per byte
+            "L": 1,      # 8-bit pixels, black and white
+            "P": 1,      # 8-bit pixels, mapped to any other mode using a color palette
+            "RGB": 3,    # 3x8-bit pixels, true color
+            "RGBA": 4,   # 4x8-bit pixels, true color with transparency mask
+            "CMYK": 4,   # 4x8-bit pixels, color separation
+            "YCbCr": 3,  # 3x8-bit pixels, color video format
+            "LAB": 3,    # 3x8-bit pixels, L*a*b color space
+            "HSV": 3,    # 3x8-bit pixels, Hue, Saturation, Value color space
+            "I": 1,      # 32-bit signed integer pixels
+            "F": 1       # 32-bit floating point pixels
+        }.get(mode, None)
+
+        if channels is None:
+            raise ValueError(f"Unsupported image mode: {mode}")
+
+        return (channels, height, width)
 
 
 
@@ -230,6 +262,45 @@ def convert_jpgs_to_video(input_folder, output_video_path, fps=30):
     video_writer.release()  # Finalize the video
     print(f"Video saved at: {output_video_path}")
 
+def png_to_video(frames_path, output_video_path, fps=30):
+    """
+    Convert a sequence of PNG files to a video.
+
+    Parameters:
+        frames_path (str): Path to the folder containing PNG frames.
+        output_video_path (str): Path to save the output video file.
+        fps (int, optional): Frames per second for the output video. Default is 30.
+    
+    Returns:
+        None
+    """
+    # Get all PNG files using glob and sort naturally
+    png_files = glob.glob(os.path.join(frames_path, "*.png"))
+    png_files.sort(key=lambda f: int(''.join(filter(str.isdigit, os.path.basename(f)))) if ''.join(filter(str.isdigit, os.path.basename(f))) else 0)
+
+    if not png_files:
+        raise ValueError("No PNG files found in the specified frames path.")
+
+    # Read the first image to get the video dimensions
+    first_frame = cv2.imread(png_files[0])
+    height, width, _ = first_frame.shape
+
+    # Initialize the video writer
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 format
+    video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    # Write frames to the video
+    for frame_path in png_files:
+        frame = cv2.imread(frame_path)
+        if frame is None:
+            print(f"Warning: Skipping file {frame_path} as it couldn't be read.")
+            continue
+        video_writer.write(frame)
+
+    # Release the video writer
+    video_writer.release()
+    print(f"Video successfully created at: {output_video_path}")
+
 def extract_masks(outpath, video_segments, frame_names):
     """
     Processes masks to make them white on a black background and saves them as images.
@@ -356,9 +427,12 @@ example_image = v1_raw_frams+"/0000.jpg"
 
 # rename frames
 #rename_and_convert_frames(v1_raw_frams+"/1", v1_raw_frams)
-
+v_raw_frams = "../data/train/raw_frames/fall/raw"
+v_raw_frams_jpg = "../data/train/raw_frames/fall/4"
+v_raw_video = "../data/train/raw_videos/fall/4.mp4"
+rename_and_convert_frames(v_raw_frams,v_raw_frams_jpg)
+convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 # Jpg to video
-
 #convert_jpgs_to_video(v1_raw_frams,v1_raw_video)
 
 # draw points on frames
@@ -369,4 +443,7 @@ example_image = v1_raw_frams+"/0000.jpg"
 
 #coords = display_image_and_capture_clicks_video(v1_raw_video, 2)
 #print(coords)
+
+#shape = get_image_shape(example_image)
+#print("Image shape (channels, height, width):", shape)
 

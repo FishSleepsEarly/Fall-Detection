@@ -213,7 +213,7 @@ def process_video2(video):
     print(f"Total Video Processing Time: {total_processing_time:.2f} seconds")
     predictor.reset_state(inference_state)
 
-
+'''
 def process_video_811(video, points):
     """
     Processes a video by using object tracking and segmentation techniques.
@@ -225,8 +225,9 @@ def process_video_811(video, points):
     Returns:
         None
     """
-    frames_dir = "../data/raw_frames/" + video
-    output_dir = "../data/mask_videos"
+    frames_dir = "../data/train/not_fall/raw_frames/" + video
+    #frames_dir = "../data/train/not_fall/raw_frames/raw"
+    output_dir = "../data/train/not_fall/mask_videos"
     os.makedirs(output_dir, exist_ok=True)
     
     # Load and sort frame names
@@ -276,25 +277,121 @@ def process_video_811(video, points):
     video_reconstruction_start = time.time()
     video_source = video + ".mp4"
     video_target = video + ".mp4"
-    video_path = os.path.join("..", "data", "raw_videos", video_source)
+    video_path = os.path.join("..", "data","train","not_fall", "raw_videos", video_source)
     properties_v = get_video_properties(video_path)
     output_path = os.path.abspath(os.path.join(output_dir, video_target))
+    
+    points_file = "../data/train/not_fall/points/"+video+".txt"
+    point_frames = "../data/train/not_fall/point_frames/"+video
+    point_mask_video = "../data/train/not_fall/point_mask_videos/"+video+".mp4"
+    bw_masks = "../data/train/not_fall/masks/"+video
+    # Get mass centers
+    #extract_mask_centers(points_file, video_segments, frame_names)
+    # Get mask images
+    #extract_masks(bw_masks, video_segments, frame_names)
+    # Genertae point frames
+    #draw_points_on_frames(points_file,frames_dir,point_frames)
+    # Generate masked video
+    reconstruct_video(output_path, frames_dir, properties_v, frame_names, video_segments)
+    # Generate masked video with points
+    #reconstruct_video(point_mask_video, point_frames, properties_v, frame_names, video_segments)
+    
+    video_reconstruction_end = time.time()
+    video_reconstruction_time = video_reconstruction_end - video_reconstruction_start
+    print(f"Video Reconstruction Time: {video_reconstruction_time:.2f} seconds")
+    print(f"Reconstructed video finished. Check '{output_path}'")
 
-    points_file = "../data/points/"+video+".txt"
-    point_frames = "../data/point_frames/"+video
-    point_mask_video = "../data/point_mask_videos/"+video+".mp4"
-    bw_masks = "../data/masks/"+video
+    # Time Count
+    total_processing_time = frame_processing_time + video_reconstruction_time
+    print(f"Total Video Processing Time: {total_processing_time:.2f} seconds")
+
+    predictor.reset_state(inference_state)
+'''
+
+def process_video_811(video, points, base_path):
+    """
+    Processes a video by using object tracking and segmentation techniques.
+
+    Args:
+        video (str): The name of the video to process (used for folder structure).
+        points (numpy.ndarray): Array of points (coordinates) for object tracking.
+        base_path (str): Base path to prepend to all relative paths.
+
+    Returns:
+        None
+    """
+    # Define directories using formatted strings
+    frames_dir = f"{base_path}/raw_frames/{video}"
+    output_dir = f"{base_path}/mask_videos"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Load and sort frame names
+    frame_names = [
+        p for p in os.listdir(frames_dir)
+        if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
+    ]
+    frame_names.sort(key=lambda p: int(os.path.splitext(p)[0].split('_')[-1]))
+
+    print("Start Processing Frames...")
+    frame_processing_start = time.time()
+
+    inference_state = predictor.init_state(video_path=frames_dir, offload_video_to_cpu=True, async_loading_frames=True)
+
+    # Define labels corresponding to the provided points
+    labels = np.ones(len(points), dtype=np.int32)  # Assuming all points are foreground points
+    
+    # Annotate the initial frame with the given points
+    ann_frame_idx = 0  # Annotated frame index
+    ann_obj_id = 1  # ID for the object being tracked
+    
+    _, out_obj_ids, out_mask_logits = predictor.add_new_points_or_box(
+        inference_state=inference_state,
+        frame_idx=ann_frame_idx,
+        obj_id=ann_obj_id,
+        points=points,
+        labels=labels,
+    )
+
+    # Propagate prompt points through the video
+    video_segments = {}
+    segmented_frames = {}
+
+    for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
+        video_segments[out_frame_idx] = {
+            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+            for i, out_obj_id in enumerate(out_obj_ids)
+        }
+    frame_processing_end = time.time()
+    frame_processing_time = frame_processing_end - frame_processing_start
+    print(" ")
+    print("Frame Masks Extracted.")
+    print(f"Frame Processing Time: {frame_processing_time:.2f} seconds")
+
+    # Video Reconstruction + Frames processing
+    print("Reconstructing video...")
+    video_reconstruction_start = time.time()
+    video_source = f"{video}.mp4"
+    video_target = f"{video}.mp4"
+    video_path = f"{base_path}/raw_videos/{video_source}"
+    properties_v = get_video_properties(video_path)
+    output_path = f"{output_dir}/{video_target}"
+    
+    points_file = f"{base_path}/points/{video}.txt"
+    point_frames = f"{base_path}/point_frames/{video}"
+    point_mask_video = f"{base_path}/point_mask_videos/{video}.mp4"
+    bw_masks = f"{base_path}/masks/{video}"
+    
     # Get mass centers
     extract_mask_centers(points_file, video_segments, frame_names)
     # Get mask images
     extract_masks(bw_masks, video_segments, frame_names)
-    # Genertae point frames
-    draw_points_on_frames(points_file,frames_dir,point_frames)
+    # Generate point frames
+    draw_points_on_frames(points_file, frames_dir, point_frames)
     # Generate masked video
     reconstruct_video(output_path, frames_dir, properties_v, frame_names, video_segments)
     # Generate masked video with points
     reconstruct_video(point_mask_video, point_frames, properties_v, frame_names, video_segments)
-
+    
     video_reconstruction_end = time.time()
     video_reconstruction_time = video_reconstruction_end - video_reconstruction_start
     print(f"Video Reconstruction Time: {video_reconstruction_time:.2f} seconds")
@@ -344,4 +441,7 @@ points = np.array([[465, 201], [424, 360]], dtype=np.float32)
 process_video_811("1", points)
 '''
 raw_videos = "../data/raw_videos"
-process_videos_in_folder(raw_videos, 2)
+v_raw_video = "../data/train/not_fall/raw_videos/4.mp4"
+points = np.array([[118, 185], [125, 248]], dtype=np.float32)
+base_path = "../data/train/not_fall"
+process_video_811("4", points,base_path)

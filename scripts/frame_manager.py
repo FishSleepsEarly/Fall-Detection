@@ -414,6 +414,46 @@ def draw_points_on_frames(input_txt_path, input_frames_path, output_frames_path,
 
     print(f"Updated frames with points saved to {output_frames_path}")
 
+def enhance_images_in_folder(folder_path, alpha=1.5, beta=50):
+    """
+    Enhance and replace all .jpg images in a folder by adjusting brightness and contrast.
+    
+    Parameters:
+    - folder_path (str): Path to the folder containing .jpg images.
+    - alpha (float): Contrast control (1.0-3.0, default is 1.5).
+    - beta (int): Brightness control (0-100, default is 50).
+    """
+    # Ensure the folder exists
+    if not os.path.exists(folder_path):
+        print(f"The folder {folder_path} does not exist.")
+        return
+    
+    # Get a list of all .jpg images in the folder
+    image_files = glob.glob(os.path.join(folder_path, "*.jpg"))
+    
+    if not image_files:
+        print(f"No .jpg images found in {folder_path}.")
+        return
+    
+    # Process each image
+    for image_file in image_files:
+        try:
+            # Read the image
+            image = cv2.imread(image_file)
+            if image is None:
+                print(f"Failed to read {image_file}. Skipping.")
+                continue
+            
+            # Enhance the image
+            enhanced_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+            
+            # Replace the original image
+            cv2.imwrite(image_file, enhanced_image)
+            #print(f"Enhanced and replaced: {image_file}")
+        except Exception as e:
+            print(f"Error processing {image_file}: {e}")
+    
+    print("Enhancement complete for all images in the folder.")
 
 #---------------#
 # Testing Field #
@@ -427,11 +467,16 @@ example_image = v1_raw_frams+"/0000.jpg"
 
 # rename frames
 #rename_and_convert_frames(v1_raw_frams+"/1", v1_raw_frams)
-v_raw_frams = "../data/train/raw_frames/fall/raw"
-v_raw_frams_jpg = "../data/train/raw_frames/fall/4"
-v_raw_video = "../data/train/raw_videos/fall/4.mp4"
+v_raw_frams = "../data/train/not_fall/raw_frames/raw"
+v_raw_frams_jpg = "../data/train/not_fall/raw_frames/4"
+v_raw_video = "../data/train/not_fall/raw_videos/4.mp4"
+
+'''
 rename_and_convert_frames(v_raw_frams,v_raw_frams_jpg)
+enhance_images_in_folder(v_raw_frams_jpg)
 convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
+'''
+
 # Jpg to video
 #convert_jpgs_to_video(v1_raw_frams,v1_raw_video)
 
@@ -441,7 +486,7 @@ convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 #convert_jpgs_to_video(v1_point_frames,v1_point_video)
 
 
-#coords = display_image_and_capture_clicks_video(v1_raw_video, 2)
+#coords = display_image_and_capture_clicks_video(v_raw_video, 2)
 #print(coords)
 
 #shape = get_image_shape(example_image)

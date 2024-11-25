@@ -12,13 +12,23 @@ project/
 │   ├── frame_manager.py
 │   └── SAM2.py
 ├── data/
-│   ├── mask_videos/
-│   ├── masks/
-│   ├── point_frames/
-│   ├── point_mask_videos/
-│   ├── point_videos/
-│   ├── points/
-│   ├── raw_frames/
-│   └── raw_videos/
+│   ├── train/
+│   │   ├── fall/
+│   │   │   ├── mask_videos/
+│   │   │   ├── masks/
+│   │   │   ├── point_frames/
+│   │   │   ├── point_mask_videos/
+│   │   │   ├── point_videos/
+│   │   │   ├── points/
+│   │   │   ├── raw_frames/
+│   │   │   └── raw_videos/
+│   │   ├── not_fall/
+│   │   │   ...
+│   ├── test/
+│   │   ├── fall/
+│   │   │   ...
+│   │   ├── not_fall/
+│   │   │   ...
+
 
 ```

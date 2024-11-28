@@ -484,34 +484,7 @@ def enhance_images_in_folder(folder_path, alpha=1.5, beta=50):
             print(f"Error processing {image_file}: {e}")
     
     print("Enhancement complete for all images in the folder.")
-'''
-def modify_color_style(input_path: str, output_path: str):
-    """
-    Modifies the color style of an input JPEG image and saves the result.
 
-    Args:
-        input_path (str): Path to the input JPEG image.
-        output_path (str): Path to save the output modified JPEG image.
-    """
-    try:
-        # Open the input image
-        image = Image.open(input_path)
-
-        # Apply a color enhancement (e.g., increase color intensity)
-        enhancer = ImageEnhance.Color(image)
-        image_colored = enhancer.enhance(1.5)  # Adjust this factor to control the intensity
-
-        # Optionally, add contrast enhancement
-        contrast_enhancer = ImageEnhance.Contrast(image_colored)
-        final_image = contrast_enhancer.enhance(1.2)  # Adjust the factor for contrast
-
-        # Save the modified image to the output path
-        final_image.save(output_path, "JPEG")
-        print(f"Modified image saved to {output_path}")
-
-    except Exception as e:
-        print(f"Error processing the image: {e}")
-'''
 def modify_color_style(input_path: str, output_path: str):
     """
     Simulates stronger lighting conditions for an input image and saves the result.
@@ -524,14 +497,9 @@ def modify_color_style(input_path: str, output_path: str):
         # Open the input image
         image = Image.open(input_path).convert("RGB")
 
-        # Apply moderate brightness adjustment
-        brightness_factor = random.uniform(0.8, 1.2)  # Slightly darker or brighter
-        brightness_enhancer = ImageEnhance.Brightness(image)
-        image_brightened = brightness_enhancer.enhance(brightness_factor)
-
         # Apply moderate contrast adjustment
         contrast_factor = random.uniform(0.8, 1.3)  # Slightly lower or higher contrast
-        contrast_enhancer = ImageEnhance.Contrast(image_brightened)
+        contrast_enhancer = ImageEnhance.Contrast(image)
         image_contrasted = contrast_enhancer.enhance(contrast_factor)
 
         # Apply moderate color balance adjustment
@@ -539,18 +507,136 @@ def modify_color_style(input_path: str, output_path: str):
         color_enhancer = ImageEnhance.Color(image_contrasted)
         final_image = color_enhancer.enhance(color_factor)
 
-        # Apply moderate warm or cool light tint
+        # Apply a warm or cool light tint, biased toward blue tones
         if random.choice([True, False]):  # 50% chance to apply a tint
             image_array = np.array(final_image, dtype=np.float32)
-            warm_tint = np.array([random.uniform(0.95, 1.1),  # Red multiplier
-                                  random.uniform(0.95, 1.1),  # Green multiplier
-                                  random.uniform(0.9, 1.05)])  # Blue multiplier
+            
+            # Adjust tint multipliers with a tendency toward blue
+            warm_tint = np.array([
+                random.uniform(0.9, 1.05),  # Red multiplier (slightly cooler red tones)
+                random.uniform(0.9, 1.05),  # Green multiplier (slightly cooler green tones)
+                random.uniform(1.0, 1.15)   # Blue multiplier (enhanced blue tones)
+            ])
+            
             image_array = np.clip(image_array * warm_tint, 0, 255).astype(np.uint8)
             final_image = Image.fromarray(image_array)
 
         # Save the modified image to the output path
         final_image.save(output_path, "JPEG")
-        print(f"Image with simulated moderate lighting conditions saved to {output_path}")
+        print(f"Image with blue-leaning random color style saved to {output_path}")
+
+    except Exception as e:
+        print(f"Error processing the image: {e}")
+
+def apply_random_color_style(image, brightness_factor, contrast_factor, color_factor, warm_tint):
+    """
+    Applies a consistent random color style to a single frame.
+    """
+    # Apply brightness adjustment
+    brightness_enhancer = ImageEnhance.Brightness(image)
+    image_brightened = brightness_enhancer.enhance(brightness_factor)
+
+    # Apply contrast adjustment
+    contrast_enhancer = ImageEnhance.Contrast(image_brightened)
+    image_contrasted = contrast_enhancer.enhance(contrast_factor)
+
+    # Apply color balance adjustment
+    color_enhancer = ImageEnhance.Color(image_contrasted)
+    final_image = color_enhancer.enhance(color_factor)
+
+    # Apply warm/cool tint
+    image_array = np.array(final_image, dtype=np.float32)
+    image_array = np.clip(image_array * warm_tint, 0, 255).astype(np.uint8)
+    final_image = Image.fromarray(image_array)
+
+    return final_image
+
+def convert_jpgs_to_video_with_color_style(input_folder, output_video_path, fps=30):
+    """
+    Converts a sequence of JPG images into a video with a consistent random color style applied to all frames.
+
+    Args:
+        input_folder (str): Path to the folder containing the JPG images.
+        output_video_path (str): Path to save the output video.
+        fps (int): Frames per second for the output video.
+
+    Returns:
+        None
+    """
+    # Get a list of all JPG files in the folder
+    frame_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.jpg')]
+    frame_files.sort()  # Sort files by name
+
+    if not frame_files:
+        print("No JPG files found in the specified folder.")
+        return
+
+    # Generate random factors for the consistent color style
+    brightness_factor = np.random.uniform(0.8, 1.2)
+    contrast_factor = np.random.uniform(0.8, 1.3)
+    color_factor = np.random.uniform(0.85, 1.15)
+    warm_tint = np.array([np.random.uniform(0.95, 1.1),  # Red multiplier
+                          np.random.uniform(0.95, 1.1),  # Green multiplier
+                          np.random.uniform(0.9, 1.05)])  # Blue multiplier
+
+    # Read the first image to get frame dimensions
+    first_frame_path = os.path.join(input_folder, frame_files[0])
+    first_frame = cv2.imread(first_frame_path)
+    height, width, _ = first_frame.shape
+
+    # Initialize the video writer
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+    video_writer = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    print("Converting images to video with consistent random color style...")
+    for frame_file in frame_files:
+        frame_path = os.path.join(input_folder, frame_file)
+        frame = cv2.imread(frame_path)
+        if frame is None:
+            print(f"Skipping invalid frame: {frame_file}")
+            continue
+
+        # Convert OpenCV frame (BGR) to PIL image (RGB)
+        image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+        # Apply the consistent random color style
+        styled_image = apply_random_color_style(image, brightness_factor, contrast_factor, color_factor, warm_tint)
+
+        # Convert back to OpenCV format (BGR) and write to video
+        styled_frame = cv2.cvtColor(np.array(styled_image), cv2.COLOR_RGB2BGR)
+        video_writer.write(styled_frame)
+
+    video_writer.release()  # Finalize the video
+    print(f"Video with random color style saved at: {output_video_path}")
+
+def apply_blue_style(input_path: str, output_path: str):
+    """
+    Applies a blue style to an input JPEG image and saves the result.
+
+    Args:
+        input_path (str): Path to the input JPEG image.
+        output_path (str): Path to save the output modified JPEG image.
+    """
+    try:
+        # Open the input image
+        image = Image.open(input_path).convert("RGB")
+        
+        # Split the image into R, G, B channels
+        r, g, b = image.split()
+
+        # Enhance the blue channel by scaling its intensity
+        b = b.point(lambda i: min(255, i + 50))  # Increase blue values, cap at 255
+
+        # Optionally reduce red and green slightly to emphasize the blue tone
+        r = r.point(lambda i: int(i * 0.8))  # Reduce red intensity
+        g = g.point(lambda i: int(i * 0.9))  # Reduce green intensity
+
+        # Merge the channels back into an RGB image
+        blue_styled_image = Image.merge("RGB", (r, g, b))
+
+        # Save the modified image to the output path
+        blue_styled_image.save(output_path, "JPEG")
+        print(f"Blue-styled image saved to {output_path}")
 
     except Exception as e:
         print(f"Error processing the image: {e}")
@@ -576,7 +662,7 @@ rename_and_convert_frames(v_raw_frams,v_raw_frams_jpg)
 enhance_images_in_folder(v_raw_frams_jpg)
 convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 '''
-
+#convert_jpgs_to_video_with_color_style(v_raw_frams_jpg, v_raw_video)
 # Jpg to video
 #convert_jpgs_to_video(v1_raw_frams,v1_raw_video)
 
@@ -593,4 +679,4 @@ convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 #print("Image shape (channels, height, width):", shape)
 
 modify_color_style("1.jpg","2.jpg")
-#apply_fda_and_save("1.jpg","2.jpg","3.jpg")
+#apply_blue_style("1.jpg","2.jpg")

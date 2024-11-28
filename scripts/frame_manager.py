@@ -2,8 +2,9 @@ import cv2
 import os
 import glob
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageEnhance
 import matplotlib.pyplot as plt
+import random
 
 # Setups
 #video_path = 'Video1.mp4'
@@ -103,6 +104,35 @@ def get_image_shape(image_path):
 
 
 # Extra functions for MM811
+def convert_png_to_jpg(input_path: str):
+    """
+    Converts a PNG image to JPEG format and replaces the original image.
+
+    Args:
+        input_path (str): Path to the input PNG image.
+    """
+    try:
+        # Ensure the file exists and has a .png extension
+        if not os.path.isfile(input_path) or not input_path.lower().endswith(".png"):
+            raise ValueError("Input file must be a valid PNG image.")
+
+        # Open the PNG image
+        image = Image.open(input_path).convert("RGB")  # Convert to RGB for JPEG format
+
+        # Define the new file path with a .jpg extension
+        output_path = os.path.splitext(input_path)[0] + ".jpg"
+
+        # Save the image as JPEG
+        image.save(output_path, "JPEG")
+
+        # Remove the original PNG file
+        os.remove(input_path)
+
+        print(f"Image converted to JPEG and saved as {output_path}. Original PNG image deleted.")
+
+    except Exception as e:
+        print(f"Error converting image: {e}")
+
 def rename_and_convert_frames(input_folder_path, output_folder_path):
     """
     Renames and converts image frames in the given folder to sequentially numbered
@@ -454,17 +484,87 @@ def enhance_images_in_folder(folder_path, alpha=1.5, beta=50):
             print(f"Error processing {image_file}: {e}")
     
     print("Enhancement complete for all images in the folder.")
+'''
+def modify_color_style(input_path: str, output_path: str):
+    """
+    Modifies the color style of an input JPEG image and saves the result.
+
+    Args:
+        input_path (str): Path to the input JPEG image.
+        output_path (str): Path to save the output modified JPEG image.
+    """
+    try:
+        # Open the input image
+        image = Image.open(input_path)
+
+        # Apply a color enhancement (e.g., increase color intensity)
+        enhancer = ImageEnhance.Color(image)
+        image_colored = enhancer.enhance(1.5)  # Adjust this factor to control the intensity
+
+        # Optionally, add contrast enhancement
+        contrast_enhancer = ImageEnhance.Contrast(image_colored)
+        final_image = contrast_enhancer.enhance(1.2)  # Adjust the factor for contrast
+
+        # Save the modified image to the output path
+        final_image.save(output_path, "JPEG")
+        print(f"Modified image saved to {output_path}")
+
+    except Exception as e:
+        print(f"Error processing the image: {e}")
+'''
+def modify_color_style(input_path: str, output_path: str):
+    """
+    Simulates stronger lighting conditions for an input image and saves the result.
+
+    Args:
+        input_path (str): Path to the input image (e.g., JPEG, PNG).
+        output_path (str): Path to save the output modified image.
+    """
+    try:
+        # Open the input image
+        image = Image.open(input_path).convert("RGB")
+
+        # Apply moderate brightness adjustment
+        brightness_factor = random.uniform(0.8, 1.2)  # Slightly darker or brighter
+        brightness_enhancer = ImageEnhance.Brightness(image)
+        image_brightened = brightness_enhancer.enhance(brightness_factor)
+
+        # Apply moderate contrast adjustment
+        contrast_factor = random.uniform(0.8, 1.3)  # Slightly lower or higher contrast
+        contrast_enhancer = ImageEnhance.Contrast(image_brightened)
+        image_contrasted = contrast_enhancer.enhance(contrast_factor)
+
+        # Apply moderate color balance adjustment
+        color_factor = random.uniform(0.85, 1.15)  # Slightly muted or enhanced colors
+        color_enhancer = ImageEnhance.Color(image_contrasted)
+        final_image = color_enhancer.enhance(color_factor)
+
+        # Apply moderate warm or cool light tint
+        if random.choice([True, False]):  # 50% chance to apply a tint
+            image_array = np.array(final_image, dtype=np.float32)
+            warm_tint = np.array([random.uniform(0.95, 1.1),  # Red multiplier
+                                  random.uniform(0.95, 1.1),  # Green multiplier
+                                  random.uniform(0.9, 1.05)])  # Blue multiplier
+            image_array = np.clip(image_array * warm_tint, 0, 255).astype(np.uint8)
+            final_image = Image.fromarray(image_array)
+
+        # Save the modified image to the output path
+        final_image.save(output_path, "JPEG")
+        print(f"Image with simulated moderate lighting conditions saved to {output_path}")
+
+    except Exception as e:
+        print(f"Error processing the image: {e}")
 
 #---------------#
 # Testing Field #
 #---------------#
-v1_raw_frams = "../data/raw_frames/1"
+v1_raw_frams = "../data/fall/raw_frames/1"
 v1_raw_video = "../data/raw_videos/1.mp4"
 v1_points = "../data/points/1.txt"
 v1_point_frames = "../data/point_frames/1"
 v1_point_video = "../data/point_videos/1.mp4"
 example_image = v1_raw_frams+"/0000.jpg"
-
+#print(get_image_shape("../data/train/not_fall/raw_frames/4/0000.jpg"))
 # rename frames
 #rename_and_convert_frames(v1_raw_frams+"/1", v1_raw_frams)
 v_raw_frams = "../data/train/not_fall/raw_frames/raw"
@@ -492,3 +592,5 @@ convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 #shape = get_image_shape(example_image)
 #print("Image shape (channels, height, width):", shape)
 
+modify_color_style("1.jpg","2.jpg")
+#apply_fda_and_save("1.jpg","2.jpg","3.jpg")

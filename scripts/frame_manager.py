@@ -337,6 +337,7 @@ def extract_masks(outpath, video_segments, frame_names):
     
     Args:
         outpath (str): Directory to save the processed masks.
+        The following 2 parameters are passed from SAM2 process_video_811
         video_segments (list): List of dictionaries where each dictionary contains object ID and mask for a frame.
         frame_names (list): List of frame names corresponding to the frames in video_segments.
     """
@@ -362,6 +363,50 @@ def extract_masks(outpath, video_segments, frame_names):
             cv2.imwrite(output_file, binary_mask)
     
     print(f"Masks saved to {outpath}")
+
+def extract_videos_frames(input_folder, output_folder):
+    """
+    Extracts frames from all .mp4 videos in the input folder and saves them as .jpg files
+    in subfolders under the output folder, named after the video files.
+
+    Args:
+        input_folder (str): Path to the folder containing .mp4 video files.
+        output_folder (str): Path to the folder where extracted frames will be stored.
+
+    Returns:
+        None
+    """
+    # Ensure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Iterate through all files in the input folder
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith(".mp4"):
+            video_path = os.path.join(input_folder, file_name)
+            video_name = os.path.splitext(file_name)[0]
+            frame_output_folder = os.path.join(output_folder, video_name)
+
+            # Ensure a subfolder for the video frames exists
+            os.makedirs(frame_output_folder, exist_ok=True)
+
+            # Open the video file
+            cap = cv2.VideoCapture(video_path)
+            frame_count = 0
+
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                # Save frame as zero-padded .jpg
+                frame_filename = os.path.join(frame_output_folder, f"{frame_count:04d}.jpg")
+                cv2.imwrite(frame_filename, frame)
+                frame_count += 1
+
+            cap.release()
+            print(f"Extracted {frame_count} frames from {file_name} into {frame_output_folder}")
+
+    print("Frame extraction completed.")
 
 def extract_mask_centers(output_txt_path, video_segments, frame_names):
     """
@@ -609,38 +654,6 @@ def convert_jpgs_to_video_with_color_style(input_folder, output_video_path, fps=
     video_writer.release()  # Finalize the video
     print(f"Video with random color style saved at: {output_video_path}")
 
-def apply_blue_style(input_path: str, output_path: str):
-    """
-    Applies a blue style to an input JPEG image and saves the result.
-
-    Args:
-        input_path (str): Path to the input JPEG image.
-        output_path (str): Path to save the output modified JPEG image.
-    """
-    try:
-        # Open the input image
-        image = Image.open(input_path).convert("RGB")
-        
-        # Split the image into R, G, B channels
-        r, g, b = image.split()
-
-        # Enhance the blue channel by scaling its intensity
-        b = b.point(lambda i: min(255, i + 50))  # Increase blue values, cap at 255
-
-        # Optionally reduce red and green slightly to emphasize the blue tone
-        r = r.point(lambda i: int(i * 0.8))  # Reduce red intensity
-        g = g.point(lambda i: int(i * 0.9))  # Reduce green intensity
-
-        # Merge the channels back into an RGB image
-        blue_styled_image = Image.merge("RGB", (r, g, b))
-
-        # Save the modified image to the output path
-        blue_styled_image.save(output_path, "JPEG")
-        print(f"Blue-styled image saved to {output_path}")
-
-    except Exception as e:
-        print(f"Error processing the image: {e}")
-
 #---------------#
 # Testing Field #
 #---------------#
@@ -678,5 +691,11 @@ convert_jpgs_to_video(v_raw_frams_jpg, v_raw_video)
 #shape = get_image_shape(example_image)
 #print("Image shape (channels, height, width):", shape)
 
-modify_color_style("1.jpg","2.jpg")
+#modify_color_style("1.jpg","2.jpg")
 #apply_blue_style("1.jpg","2.jpg")
+
+v_raw_videos = "../data/test/not_fall/raw_videos"
+output_frames = "../data/test/not_fall/raw_frames"
+
+#extract_videos_frames(v_raw_videos, output_frames)
+#convert_jpgs_to_video("../data/test/not_fall/masks/1","../data/test/not_fall/mask_videos/1.mp4")

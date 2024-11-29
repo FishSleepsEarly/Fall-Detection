@@ -9,7 +9,7 @@ train_dir = "../data/train"
 test_dir = "../data/test"
 
 # Dataset and DataLoader
-train_dataset = FallDetectionVideoDataset(train_dir, img_size=(224, 224), num_frames=16)
+train_dataset = FallDetectionVideoDataset(train_dir, img_size=(224, 224), num_frames=30)
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 
 # Initialize Model
@@ -28,7 +28,7 @@ trainer.fit(model, train_loader)
 
 
 # Test Dataset and DataLoader
-test_dataset = FallDetectionVideoDataset(test_dir, img_size=(224, 224), num_frames=16)
+test_dataset = FallDetectionVideoDataset(test_dir, img_size=(224, 224), num_frames=30)
 test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
 # Test the model

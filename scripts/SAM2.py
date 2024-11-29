@@ -308,7 +308,7 @@ def process_video_811(video, points):
     predictor.reset_state(inference_state)
 '''
 
-def process_video_811(video, points, base_path):
+def process_video_811(video, points, base_path, reset_points=False, num_clicks=2):
     """
     Processes a video by using object tracking and segmentation techniques.
 
@@ -316,14 +316,21 @@ def process_video_811(video, points, base_path):
         video (str): The name of the video to process (used for folder structure).
         points (numpy.ndarray): Array of points (coordinates) for object tracking.
         base_path (str): Base path to prepend to all relative paths.
-
+        reset_points (bool): If True, recapture points from the first frame of the video.
+        num_clicks (int): Number of clicks to capture if reset_points is True.
     Returns:
         None
     """
     # Define directories using formatted strings
     frames_dir = f"{base_path}/raw_frames/{video}"
+    raw_video = f"{base_path}/raw_videos/{video}.mp4"
+    print(raw_video)
     output_dir = f"{base_path}/mask_videos"
     os.makedirs(output_dir, exist_ok=True)
+
+    # Capture click points from the first frame of the video
+    if reset_points:
+        points = display_image_and_capture_clicks_video(raw_video, num_clicks)
     
     # Load and sort frame names
     frame_names = [
@@ -382,15 +389,15 @@ def process_video_811(video, points, base_path):
     bw_masks = f"{base_path}/masks/{video}"
     
     # Get mass centers
-    extract_mask_centers(points_file, video_segments, frame_names)
+    #extract_mask_centers(points_file, video_segments, frame_names)
     # Get mask images
     extract_masks(bw_masks, video_segments, frame_names)
     # Generate point frames
-    draw_points_on_frames(points_file, frames_dir, point_frames)
+    #draw_points_on_frames(points_file, frames_dir, point_frames)
     # Generate masked video
-    reconstruct_video(output_path, frames_dir, properties_v, frame_names, video_segments)
+    #reconstruct_video(output_path, frames_dir, properties_v, frame_names, video_segments)
     # Generate masked video with points
-    reconstruct_video(point_mask_video, point_frames, properties_v, frame_names, video_segments)
+    #reconstruct_video(point_mask_video, point_frames, properties_v, frame_names, video_segments)
     
     video_reconstruction_end = time.time()
     video_reconstruction_time = video_reconstruction_end - video_reconstruction_start
@@ -418,6 +425,10 @@ def process_videos_in_folder(folder_path, num_clicks):
     # Get all video files in the folder
     video_files = [f for f in os.listdir(folder_path) if f.endswith('.mp4')]
 
+    # Extract the based path that will be passed to process_video_811
+    folder_parts = folder_path.split('/')
+    based_path = '/'.join(folder_parts[:-1])
+
     for video_file in video_files:
         # Extract the video name (e.g., "1" from "1.mp4")
         video_name = os.path.splitext(video_file)[0]
@@ -427,12 +438,8 @@ def process_videos_in_folder(folder_path, num_clicks):
 
         print(f"Processing video: {video_file}")
 
-        # Capture click points from the first frame of the video
-        points = display_image_and_capture_clicks_video(video_path, num_clicks)
-
         # Process the video with the captured points
-        process_video_811(video_name, points)
-
+        process_video_811(video_name, None, based_path, True, num_clicks)
         print(f"Finished processing video: {video_file}\n")
 
 
@@ -444,4 +451,6 @@ raw_videos = "../data/raw_videos"
 v_raw_video = "../data/train/not_fall/raw_videos/4.mp4"
 points = np.array([[118, 185], [125, 248]], dtype=np.float32)
 base_path = "../data/train/not_fall"
-process_video_811("4", points,base_path)
+#process_video_811("4", points,base_path)
+
+#process_videos_in_folder("../data/test/fall/raw_videos",2)

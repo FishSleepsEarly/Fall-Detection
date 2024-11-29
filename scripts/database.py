@@ -17,48 +17,63 @@ class FallDetectionVideoDataset(Dataset):
         self.data_dir = data_dir
         self.img_size = img_size
         self.num_frames = num_frames
-        
-        # List all video paths and labels
         self.video_paths = []
+        self.mask_paths = []
         self.labels = []
         
         for label, category in enumerate(["not_fall", "fall"]):  # 0: not_fall, 1: fall
-            category_path = os.path.join(data_dir, category, "raw_videos")
-            if not os.path.exists(category_path):
-                raise ValueError(f"Path {category_path} does not exist.")
+            category_path = os.path.join(data_dir, category)
+            raw_videos_path = os.path.join(category_path, "raw_videos")
+            mask_videos_path = os.path.join(category_path, "mask_videos")
             
-            for video in os.listdir(category_path):
-                if video.endswith(".mp4"):  # Only process .mp4 files
-                    self.video_paths.append(os.path.join(category_path, video))
+            if not os.path.exists(raw_videos_path) or not os.path.exists(mask_videos_path):
+                raise ValueError(f"Missing directories for {category}: {raw_videos_path} or {mask_videos_path}")
+            
+            for video in os.listdir(raw_videos_path):
+                if video.endswith(".mp4"):  # Assuming video files are .mp4
+                    raw_video_path = os.path.join(raw_videos_path, video)
+                    mask_video_path = os.path.join(mask_videos_path, video)  # Matching mask video by name
+                    if not os.path.exists(mask_video_path):
+                        raise ValueError(f"Missing corresponding mask video for {raw_video_path}")
+                    
+                    self.video_paths.append(raw_video_path)
+                    self.mask_paths.append(mask_video_path)
                     self.labels.append(label)
         
         # Default transform if none provided
         self.transform = transform or transforms.Compose([
-            transforms.Resize(self.img_size),  # Resize to (224, 224)
-            transforms.ToTensor(),            # Convert to tensor
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # ImageNet stats
+            transforms.Resize(self.img_size),
+            transforms.ToTensor(),
         ])
+        # Normalize RGB differently than binary masks
+        self.rgb_normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.mask_normalize = transforms.Normalize(mean=[0.5], std=[0.5])
 
     def __len__(self):
         return len(self.video_paths)
 
     def __getitem__(self, idx):
-        # Load video
-        video_path = self.video_paths[idx]
-        frames = self._load_video(video_path)
+        # Load RGB video and mask video
+        raw_video_path = self.video_paths[idx]
+        mask_video_path = self.mask_paths[idx]
+        
+        rgb_frames = self._load_video(raw_video_path)
+        mask_frames = self._load_video(mask_video_path, is_mask=True)
         
         # Sample frames
-        frames = self._sample_frames(frames, self.num_frames)
+        rgb_frames = self._sample_frames(rgb_frames, self.num_frames)
+        mask_frames = self._sample_frames(mask_frames, self.num_frames)
         
-        # Apply transformations to each frame
-        processed_frames = torch.stack([self.transform(frame) for frame in frames])
+        # Apply transformations
+        processed_rgb_frames = torch.stack([self.rgb_normalize(self.transform(frame)) for frame in rgb_frames])
+        processed_mask_frames = torch.stack([self.mask_normalize(self.transform(frame)) for frame in mask_frames])
         
         # Get label
         label = torch.tensor(self.labels[idx], dtype=torch.long)
         
-        return processed_frames, label
+        return processed_rgb_frames, processed_mask_frames, label
 
-    def _load_video(self, video_path):
+    def _load_video(self, video_path, is_mask=False):
         """
         Load frames from a video file.
         """
@@ -68,8 +83,12 @@ class FallDetectionVideoDataset(Dataset):
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
-            frame = Image.fromarray(frame)  # Convert to PIL image
+            if is_mask:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # Convert mask to grayscale
+                frame = Image.fromarray(frame)
+            else:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+                frame = Image.fromarray(frame)
             frames.append(frame)
         cap.release()
         return frames
@@ -84,7 +103,6 @@ class FallDetectionVideoDataset(Dataset):
         else:
             indices = torch.linspace(0, total_frames - 1, num_frames).long()
         return [frames[i] for i in indices]
-
 
 '''
 from torch.utils.data import DataLoader

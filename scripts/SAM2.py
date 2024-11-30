@@ -389,7 +389,7 @@ def process_video_811(video, points, base_path, reset_points=False, num_clicks=2
     bw_masks = f"{base_path}/masks/{video}"
     
     # Get mass centers
-    #extract_mask_centers(points_file, video_segments, frame_names)
+    extract_mask_centers(points_file, video_segments, frame_names)
     # Get mask images
     extract_masks(bw_masks, video_segments, frame_names)
     # Generate point frames
@@ -453,4 +453,4 @@ points = np.array([[118, 185], [125, 248]], dtype=np.float32)
 base_path = "../data/train/not_fall"
 #process_video_811("4", points,base_path)
 
-#process_videos_in_folder("../data/test/fall/raw_videos",2)
+process_videos_in_folder("../data/test/fall/raw_videos",2)

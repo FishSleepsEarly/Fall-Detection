@@ -105,8 +105,8 @@ class FallDetectionModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        rgb, mask, coords, labels = batch
-        logits = self(rgb, mask, coords)
+        rgb_frames, mask_frames, coord_frames, labels, lengths = batch
+        logits = self(rgb_frames, mask_frames, coord_frames, lengths)
         loss = self.criterion(logits, labels)
         self.log("val_loss", loss, prog_bar=True)
 

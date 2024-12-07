@@ -30,6 +30,7 @@ def custom_collate_fn(batch):
 
 # Paths to dataset
 train_dir = "../data/train"
+val_dir = "../data/val"
 test_dir = "../data/test"
 
 # Training Dataset and DataLoader
@@ -38,6 +39,15 @@ train_loader = DataLoader(
     train_dataset,
     batch_size=4,
     shuffle=True,
+    collate_fn=custom_collate_fn
+)
+
+# Validation Dataset and DataLoader
+val_dataset = FallDetectionVideoDataset(data_dir=val_dir, img_size=(224, 224))
+val_loader = DataLoader(
+    val_dataset,
+    batch_size=4,
+    shuffle=False,
     collate_fn=custom_collate_fn
 )
 
@@ -52,8 +62,8 @@ trainer = Trainer(
     log_every_n_steps=20
 )
 
-# Train the model
-trainer.fit(model, train_loader)
+# Train the model with validation
+trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
 # Testing Dataset and DataLoader
 test_dataset = FallDetectionVideoDataset(data_dir=test_dir, img_size=(224, 224))

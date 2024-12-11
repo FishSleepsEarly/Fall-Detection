@@ -1,3 +1,5 @@
+The data, model checkpoints, and source code can be downloaded from the following link: [example.com](https://example.com)
+
 # Project Documentation
 
 ## File Structure
@@ -11,32 +13,46 @@ project/
 ├── configs/
 │   └── sam2.1_hiera_t.yaml            # Configuration file for the model
 ├── scripts/
+│   ├── database.py                    # Database management script
+│   ├── expirenment.py                 # Script for training the model
 │   ├── frame_manager.py               # Frame management script
+│   ├── load_model.py                  # Script to load and evaluate the model
+│   ├── net.py                         # Network architecture implementation
 │   └── SAM2.py                        # Main script for SAM2 operations
 ├── data/
 │   ├── train/
 │   │   ├── fall/
+│   │   │   ├── angles/                # Joint angle data
 │   │   │   ├── mask_videos/           # Masked video data for "fall" category
 │   │   │   ├── masks/                 # Masks corresponding to frames
-│   │   │   ├── point_frames/          # Frames with annotated key points
-│   │   │   ├── point_mask_videos/     # Masked videos with key points
-│   │   │   ├── point_videos/          # Videos with key points
 │   │   │   ├── points/                # Annotated key points
 │   │   │   ├── raw_frames/            # Raw extracted frames
 │   │   │   └── raw_videos/            # Original raw videos
 │   │   ├── not_fall/
-│   │   │   ...                        # Data structure mirrors "fall" category
+│   │   │   ├── angles/                # Joint angle data
+│   │   │   ├── mask_videos/           # Masked video data for "not_fall" category
+│   │   │   ├── masks/                 # Masks corresponding to frames
+│   │   │   ├── points/                # Annotated key points
+│   │   │   ├── raw_frames/            # Raw extracted frames
+│   │   │   └── raw_videos/            # Original raw videos
 │   ├── test/
 │   │   ├── fall/                      # Test data for "fall" category
 │   │   │   ...
 │   │   ├── not_fall/                  # Test data for "not_fall" category
 │   │   │   ...
+│   ├── val/
+│   │   ├── fall/                      # Validation data for "fall" category
+│   │   │   ...
+│   │   ├── not_fall/                  # Validation data for "not_fall" category
+│   │   │   ...
+├── paper/
+│   ├── MM811_Report.pdf               # Final project report (PDF format)
+│   └── MM811_Report.tex               # Report source file (LaTeX format)
 ```
 
 ---
 
 ## Instructions for Setup and Execution
-The data, model checkpoints, and source code can be downloaded from the following link: [example.com](https://example.com)
 
 ### Prerequisites
 
@@ -50,6 +66,7 @@ Ensure that the necessary dependencies are installed in your environment. These 
    - `configs/`  
    - `data/`  
    - `scripts/`  
+   - `paper/`  
    - `README.md`  
 
 2. **Testing the Trained Model**  
@@ -81,6 +98,20 @@ Ensure that the necessary dependencies are installed in your environment. These 
      ```  
      Here, `n` refers to the latest version of the model.
 
+4. **Accessing the Project Report**  
+   The final project report can be found in the `paper/` folder:  
+   - PDF format: `paper/MM811_Report.pdf`  
+   - LaTeX source: `paper/MM811_Report.tex`
+
+5. **Scripts Overview**  
+   The `scripts/` folder contains the following files:
+   - `database.py` - Manages the project database.
+   - `expirenment.py` - Handles model training.
+   - `frame_manager.py` - Manages video frame extraction and processing.
+   - `load_model.py` - Loads a pre-trained model for testing.
+   - `net.py` - Defines the network architecture.
+   - `SAM2.py` - Main script for SAM2 operations.
+
 ---
 
 ## Notes
@@ -91,3 +122,9 @@ Ensure that the necessary dependencies are installed in your environment. These 
 For additional information or troubleshooting, refer to the inline comments within the scripts.
 
 ---
+
+## Authors
+
+- Siming Hua
+- Letian Xu
+- Qilong Yu

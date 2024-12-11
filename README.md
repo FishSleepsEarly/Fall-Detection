@@ -103,15 +103,6 @@ Ensure that the necessary dependencies are installed in your environment. These 
    - PDF format: `paper/MM811_Report.pdf`  
    - LaTeX source: `paper/MM811_Report.tex`
 
-5. **Scripts Overview**  
-   The `scripts/` folder contains the following files:
-   - `database.py` - Manages the project database.
-   - `expirenment.py` - Handles model training.
-   - `frame_manager.py` - Manages video frame extraction and processing.
-   - `load_model.py` - Loads a pre-trained model for testing.
-   - `net.py` - Defines the network architecture.
-   - `SAM2.py` - Main script for SAM2 operations.
-
 ---
 
 ## Notes

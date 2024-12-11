@@ -36,6 +36,7 @@ project/
 ---
 
 ## Instructions for Setup and Execution
+The data, model checkpoints, and source code can be downloaded from the following link: example.com
 
 ### Prerequisites
 

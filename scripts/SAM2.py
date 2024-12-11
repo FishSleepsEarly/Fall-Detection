@@ -451,6 +451,9 @@ raw_videos = "../data/raw_videos"
 v_raw_video = "../data/train/not_fall/raw_videos/4.mp4"
 points = np.array([[118, 185], [125, 248]], dtype=np.float32)
 base_path = "../data/train/not_fall"
-#process_video_811("4", points,base_path)
 
-process_videos_in_folder("../data/test/fall/raw_videos",2)
+#process_video_811(24,None,"../data/train/fall",2)
+#
+#
+#process_videos_in_folder("../data/test/fall/raw_videos",2)
+#process_video_811(10, None, "../data/test/fall", True, 2)

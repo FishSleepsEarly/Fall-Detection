@@ -29,24 +29,40 @@ def get_video_properties(video_path):
     video_properties = [width, height, channels, fps]
     return video_properties
 
-def extract_frames(video):
-    video_path = "../Videos/Video" + str(video) + ".mp4"
-    output_folder = "../frames/" + str(video)
-    #output_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frames')
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+def extract_frames(video_path, output_folder):
+    """
+    Extracts frames from a video file and stores them in a subfolder named after the video file.
 
+    Args:
+        video_path (str): Path to the input video file (e.g., "path/to/1.mp4").
+        output_folder (str): Path to the folder where extracted frames will be stored.
+    """
+    # Get the video name without extension
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    
+    # Create a subfolder named after the video inside the output folder
+    video_output_folder = os.path.join(output_folder, video_name)
+    os.makedirs(video_output_folder, exist_ok=True)
+    
+    # Open the video file
     video = cv2.VideoCapture(video_path)
+    frame_count = 0  # Counter for the frames
+    
+    print(f"Extracting frames from: {video_path}")
     
     while video.isOpened():
         ret, frame = video.read()
         if not ret:
-            break
-        frame_filename = os.path.join(output_folder, f'{len(os.listdir(output_folder)):04d}.jpg')
+            break  # Stop when there are no more frames to read
+        
+        # Create a zero-padded frame filename: 0000.jpg, 0001.jpg, etc.
+        frame_filename = os.path.join(video_output_folder, f"{frame_count:04d}.jpg")
         cv2.imwrite(frame_filename, frame)
+        frame_count += 1
 
+    # Release the video capture
     video.release()
-    print(f"Frames extracted to '{output_folder}'")
+    print(f"Frames extracted to '{video_output_folder}'")
 
 # reconstruct from memory masks
 def reconstruct_video(output_path, frames_dir, properties, frame_names, video_segments):
@@ -654,6 +670,195 @@ def convert_jpgs_to_video_with_color_style(input_folder, output_video_path, fps=
     video_writer.release()  # Finalize the video
     print(f"Video with random color style saved at: {output_video_path}")
 
+def rename_png_images(input_folder):
+    """
+    Renames all PNG images in the specified folder sequentially from 0000.png to 9999.png.
+    
+    Args:
+        input_folder (str): Path to the folder containing the PNG images.
+    """
+    # Get all PNG files in the folder, sorted alphabetically by name
+    png_files = sorted(glob.glob(os.path.join(input_folder, "depth_*.png")))
+    
+    # Check if there are files to process
+    if not png_files:
+        print("No PNG files found in the folder.")
+        return
+    
+    # Rename files sequentially
+    for idx, file_path in enumerate(png_files):
+        # Generate new file name with zero-padded numbers
+        new_name = f"{idx:04d}.png"
+        new_path = os.path.join(input_folder, new_name)
+        
+        # Rename the file
+        os.rename(file_path, new_path)
+        print(f"Renamed: {os.path.basename(file_path)} -> {new_name}")
+    
+    print(f"Successfully renamed {len(png_files)} files.")
+
+def rename_folders_sequentially(input_path):
+    """
+    Rename folders in the input_path from 'Fall XX' to sequential numbers '1', '2', '3', ... .
+
+    Args:
+        input_path (str): Path containing folders named 'Fall XX'.
+    """
+    # List all items in the input directory and sort for consistent order
+    folders = sorted([f for f in os.listdir(input_path) if os.path.isdir(os.path.join(input_path, f))])
+    
+    # Filter folders matching the 'Fall XX' pattern
+    fall_folders = [folder for folder in folders if folder.startswith("Not Fall ")]
+
+    # Rename folders sequentially
+    for index, folder in enumerate(fall_folders, start=1):
+        old_folder_path = os.path.join(input_path, folder)
+        new_folder_name = str(index)  # Convert index to string for folder name
+        new_folder_path = os.path.join(input_path, new_folder_name)
+        
+        try:
+            # Rename the folder
+            os.rename(old_folder_path, new_folder_path)
+            print(f"Renamed: '{old_folder_path}' -> '{new_folder_path}'")
+        except Exception as e:
+            print(f"Error renaming '{old_folder_path}' to '{new_folder_path}': {e}")
+
+def process_folders_with_pngs_to_jpgs(input_path, rename_and_convert_frames):
+    """
+    Apply rename_and_convert_frames to folders named 1, 2, 3... in the input_path.
+    The input and output paths are the same folder.
+
+    Args:
+        input_path (str): Path containing folders named 1, 2, 3, ...
+        rename_and_convert_frames (function): Function to process frames in input/output folders.
+    """
+    # List all folders in the input path
+    folders = sorted([f for f in os.listdir(input_path) if os.path.isdir(os.path.join(input_path, f))])
+
+    # Process only folders named as numbers (1, 2, 3...)
+    for folder_name in folders:
+        if folder_name.isdigit():  # Check if the folder name is a number
+            input_folder_path = os.path.join(input_path, folder_name)
+            output_folder_path = input_folder_path  # Same as input folder
+
+            print(f"Processing folder: {input_folder_path}")
+            try:
+                rename_and_convert_frames(input_folder_path, output_folder_path)
+                print(f"Successfully processed: {input_folder_path}")
+            except Exception as e:
+                print(f"Error processing {input_folder_path}: {e}")
+
+def delete_png_files_in_folders(root_path):
+    """
+    Deletes all PNG files in each folder located in the given root path.
+
+    Args:
+        root_path (str): The root directory containing subfolders.
+    """
+    # List all folders in the root directory
+    for folder_name in os.listdir(root_path):
+        folder_path = os.path.join(root_path, folder_name)
+
+        # Ensure it's a directory
+        if os.path.isdir(folder_path):
+            print(f"Checking folder: {folder_path}")
+
+            # List all files in the folder
+            for file_name in os.listdir(folder_path):
+                if file_name.lower().endswith(".png"):  # Check for .png files (case-insensitive)
+                    file_path = os.path.join(folder_path, file_name)
+                    try:
+                        os.remove(file_path)  # Delete the file
+                        print(f"Deleted: {file_path}")
+                    except Exception as e:
+                        print(f"Error deleting {file_path}: {e}")
+
+def process_folders_with_jpgs_to_video(input_path, convert_jpgs_to_video, fps=30):
+    """
+    Apply convert_jpgs_to_video to folders named 1, 2, 3... in the input_path.
+
+    Args:
+        input_path (str): Path containing folders named 1, 2, 3, ...
+        convert_jpgs_to_video (function): Function to convert JPGs to video.
+        fps (int): Frames per second for the output video.
+    """
+    # List all folders in the input path
+    folders = sorted([f for f in os.listdir(input_path) if os.path.isdir(os.path.join(input_path, f))])
+
+    # Process only folders named as numbers (1, 2, 3...)
+    for folder_name in folders:
+        if folder_name.isdigit():  # Check if the folder name is a number
+            input_folder_path = os.path.join(input_path, folder_name)
+            output_video_path = os.path.join(input_path, f"{folder_name}.mp4")  # Video name is folder_name.mp4
+
+            print(f"Processing folder: {input_folder_path} -> {output_video_path}")
+            try:
+                # Call the convert_jpgs_to_video function
+                convert_jpgs_to_video(input_folder_path, output_video_path, fps=fps)
+                print(f"Successfully created video: {output_video_path}")
+            except Exception as e:
+                print(f"Error processing {input_folder_path}: {e}")
+
+def reorder_jpg_files_in_folders(root_path):
+    """
+    Renames JPG files in each folder located in the given root path to start from '0000.jpg',
+    maintaining their original order.
+
+    Args:
+        root_path (str): The root directory containing subfolders.
+    """
+    # List all folders in the root directory
+    for folder_name in os.listdir(root_path):
+        folder_path = os.path.join(root_path, folder_name)
+
+        # Ensure it's a directory
+        if os.path.isdir(folder_path):
+            print(f"Processing folder: {folder_path}")
+
+            # List all JPG files, sorted to maintain order
+            jpg_files = sorted(
+                [f for f in os.listdir(folder_path) if f.lower().endswith(".jpg")]
+            )
+
+            # Rename JPG files starting from '0000.jpg'
+            for idx, file_name in enumerate(jpg_files):
+                old_file_path = os.path.join(folder_path, file_name)
+                new_file_name = f"{idx:04d}.jpg"  # Format index as '0000.jpg', '0001.jpg', etc.
+                new_file_path = os.path.join(folder_path, new_file_name)
+
+                try:
+                    os.rename(old_file_path, new_file_path)
+                    print(f"Renamed: {old_file_path} -> {new_file_path}")
+                except Exception as e:
+                    print(f"Error renaming {old_file_path} to {new_file_path}: {e}")
+
+def rename_json_files_sequentially(folder_path):
+    """
+    Renames all JSON files in the given folder to sequential numbers (1.json, 2.json, ...).
+
+    Args:
+        folder_path (str): Path to the folder containing JSON files.
+    """
+    # List all JSON files in the folder
+    json_files = sorted(
+        [f for f in os.listdir(folder_path) if f.lower().endswith(".json")]
+    )
+
+    # Rename JSON files to sequential order
+    for idx, file_name in enumerate(json_files, start=1):
+        old_file_path = os.path.join(folder_path, file_name)
+        new_file_name = f"{idx}.json"
+        new_file_path = os.path.join(folder_path, new_file_name)
+
+        try:
+            os.rename(old_file_path, new_file_path)
+            print(f"Renamed: {file_name} -> {new_file_name}")
+        except Exception as e:
+            print(f"Error renaming {old_file_path} to {new_file_path}: {e}")
+
+# Example usage:
+# process_all_folders("/path/to/root", rename_and_convert_frames)
+
 #---------------#
 # Testing Field #
 #---------------#
@@ -699,3 +904,37 @@ output_frames = "../data/test/not_fall/raw_frames"
 
 #extract_videos_frames(v_raw_videos, output_frames)
 #convert_jpgs_to_video("../data/test/not_fall/masks/1","../data/test/not_fall/mask_videos/1.mp4")
+the_in_path = "../../data/test/not_fall/9_d"
+the_out_path = "../../data/test/not_fall/9"
+#rename_png_images(the_in_path)
+
+frames_path = "../data/test/not_fall/masks/9"
+outvideo_path = "../data/test/not_fall/mask_videos/9.mp4"
+#convert_jpgs_to_video(frames_path, outvideo_path, 30)
+#rename_folders_sequentially("../data/train/fall/raw_frames")
+#process_folders_with_pngs_to_jpgs("../data/train/fall/raw_frames",rename_and_convert_frames)
+#delete_png_files_in_folders("../data/train/fall/raw_frames")
+#process_folders_with_jpgs_to_video("../data/train/fall/raw_frames",convert_jpgs_to_video)
+#process_folders_with_jpgs_to_video("../data/train/fall/masks",convert_jpgs_to_video)
+#process_folders_with_pngs_to_jpgs("../data/train/not_fall/raw_frames",rename_and_convert_frames)
+#delete_png_files_in_folders("../data/train/not_fall/raw_frames")
+
+#reorder_jpg_files_in_folders("../data/train/not_fall/raw_frames")
+
+#enhance_images_in_folder("../data/train/not_fall/raw_frames/23")
+#process_folders_with_jpgs_to_video("../data/train/not_fall/raw_frames",convert_jpgs_to_video)
+
+#extract_frames("../data/test/fall/raw_videos/13.mp4","../data/test/fall/raw_frames")
+#rename_json_files_sequentially("../data/train/not_fall/angles")
+#process_folders_with_jpgs_to_video("../data/test_copy/fall/raw_frames",convert_jpgs_to_video)
+#extract_frames("../data/test/fall/raw_videos/10.mp4","../data/test/fall/raw_frames")
+#process_folders_with_jpgs_to_video("../data/train/not_fall/masks",convert_jpgs_to_video)
+#print(get_video_properties("../data/test/fall/raw_videos/1.mp4"))
+#convert_jpgs_to_video("../data/test/fall/masks/10", "../data/test/fall/mask_videos/10.mp4", 30)
+
+#rename_and_convert_frames("../data/test/fall/raw_frames/10","../data/test/fall/raw_frames/10")
+#convert_jpgs_to_video("../data/test/fall/raw_frames/10", "../data/test/fall/raw_videos/10.mp4", 30)
+#reorder_jpg_files_in_folders("../data/test/fall/raw_frames")
+#convert_jpgs_to_video("../data/test/fall/masks/10", "../data/test/fall/mask_videos/10.mp4", 30)
+#enhance_images_in_folder("../data/test/fall/raw_frames/10",0.5,-50)
+convert_jpgs_to_video("../data/test/fall/masks/10", "../data/test/fall/mask_videos/10.mp4", 30)

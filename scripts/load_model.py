@@ -1,9 +1,9 @@
+import torch
 from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader
 from database import FallDetectionVideoDataset
 from net import FallDetectionModel
 from torch.nn.utils.rnn import pad_sequence
-import torch
 
 
 def custom_collate_fn(batch):
@@ -25,29 +25,32 @@ def custom_collate_fn(batch):
 
     return rgb_frames, mask_frames, coord_frames, angle_frames, labels, lengths
 
-# Paths to dataset
-train_dir = "../data/train"
-val_dir = "../data/val"
-test_dir = "../data/test"
 
-# Datasets and Loaders
-train_dataset = FallDetectionVideoDataset(data_dir=train_dir, img_size=(224, 224))
-val_dataset = FallDetectionVideoDataset(data_dir=val_dir, img_size=(224, 224))
-test_dataset = FallDetectionVideoDataset(data_dir=test_dir, img_size=(224, 224))
-train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=custom_collate_fn)
+def main():
+    # Path to the test data and the checkpoint
+    test_dir = "../data/test"
+    checkpoint_path = "./lightning_logs/version_f/checkpoints/epoch=9-step=170.ckpt"  # Replace with the actual path
+
+    # Load the test dataset and DataLoader
+    test_dataset = FallDetectionVideoDataset(data_dir=test_dir, img_size=(224, 224))
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=4,
+        shuffle=False,
+        collate_fn=custom_collate_fn
+    )
+
+    # Load the trained model from checkpoint
+    model = FallDetectionModel.load_from_checkpoint(checkpoint_path, num_classes=2)
+    print("Checkpoint loaded successfully!")
+
+    # Initialize the Trainer for testing
+    trainer = Trainer(accelerator="gpu", devices=1)
+
+    # Perform testing
+    print("Starting testing...")
+    trainer.test(model, dataloaders=test_loader)
 
 
-val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False, collate_fn=custom_collate_fn)
-
-
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=custom_collate_fn)
-
-# Initialize the model
-model = FallDetectionModel(num_classes=2)
-
-# Trainer with GPU acceleration
-trainer = Trainer(max_epochs=10, accelerator="gpu", devices=1, log_every_n_steps=20)
-
-# Train and test the model
-trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
-trainer.test(model, test_loader)
+if __name__ == "__main__":
+    main()
